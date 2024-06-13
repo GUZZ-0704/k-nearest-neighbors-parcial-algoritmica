@@ -23,6 +23,9 @@ caracteristicas = ['Yearly Change', 'Density (P/Km²)', 'Land Area (Km²)',
 objetivo = 'Population (2020)'
 
 data_limpio = data.dropna(subset=caracteristicas + [objetivo])
+
+print(data.isnull().sum())
+
 print(data.shape)
 print(data_limpio.shape)
 
@@ -35,7 +38,7 @@ escalador = StandardScaler()
 X_escalado = escalador.fit_transform(X)
 
 
-X_train, X_test, y_train, y_test = train_test_split(X_escalado, y, train_size=0.8, test_size=0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X_escalado, y, train_size=0.8, test_size=0.2, random_state=0)
 
 
 knn_regressor = KNeighborsRegressor(n_neighbors=5)
