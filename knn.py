@@ -1,64 +1,50 @@
 import pandas as pd
 import numpy as np
+from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.neighbors import KNeighborsClassifier
-import matplotlib.pyplot as plt
+from sklearn.neighbors import KNeighborsRegressor
 
-# Cargar el dataset
+pd.set_option('display.max_columns', None)
+
 anime = pd.read_csv('anime.csv', sep='\t', keep_default_na=False)
 
-# Selección de características y objetivo
-caracteristicas = ['score', 'score_count']
-objetivo = 'popularity_rank'
+anime_model = anime[['anime_id', 'title', 'synopsis', 'type', 'num_episodes', 'genres', 'score', 'members_count', 'popularity_rank']]
 
-# Manejo de valores faltantes
-anime_limpio = anime.dropna(subset=caracteristicas + [objetivo])
-print(f'Datos después de eliminar filas con valores faltantes: {anime_limpio.shape}')
+anime_model.loc[:, 'genres'] = anime_model['genres'].str.split('|')
+anime_model = anime_model.explode('genres')
+anime_model = pd.concat([anime_model, pd.get_dummies(anime_model['genres'])], axis=1)
+anime_model.drop('genres', axis=1, inplace=True)
 
-# Asegurar que no haya valores vacíos en las columnas seleccionadas
-anime_limpio[caracteristicas] = anime_limpio[caracteristicas].apply(pd.to_numeric, errors='coerce')
-anime_limpio.dropna(subset=caracteristicas, inplace=True)
+anime_model.dropna(inplace=True)
 
-X = anime_limpio[caracteristicas]
-y = anime_limpio[objetivo]
+anime_model['num_episodes'] = pd.to_numeric(anime_model['num_episodes'], errors='coerce')
+anime_model['score'] = pd.to_numeric(anime_model['score'], errors='coerce')
+anime_model['popularity_rank'] = pd.to_numeric(anime_model['popularity_rank'], errors='coerce')
+anime_model['members_count'] = pd.to_numeric(anime_model['members_count'], errors='coerce')
 
-# Normalización de datos
-escalador = StandardScaler()
-X_escalado = escalador.fit_transform(X)
+anime_model.dropna(inplace=True)
 
-# División de datos en conjunto de entrenamiento y prueba
-X_train, X_test, y_train, y_test = train_test_split(X_escalado, y, test_size=0.2, random_state=42)
+features = ['num_episodes', 'score', 'popularity_rank']
+X = anime_model[features]
+y = anime_model['members_count']
 
-# Crear el modelo k-NN
-knn_classifier = KNeighborsClassifier(n_neighbors=5)
-knn_classifier.fit(X_train, y_train)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Crear una malla para visualizar las regiones de decisión
-h = 0.02  # Tamaño del paso en la malla
-x_min, x_max = X_escalado[:, 0].min() - 1, X_escalado[:, 0].max() + 1
-y_min, y_max = X_escalado[:, 1].min() - 1, X_escalado[:, 1].max() + 1
-xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
-                     np.arange(y_min, y_max, h))
-Z = knn_classifier.predict(np.c_[xx.ravel(), yy.ravel()])
-Z = Z.reshape(xx.shape)
+knn = KNeighborsRegressor(n_neighbors=3)
+knn.fit(X_train, y_train)
 
-# Graficar las regiones de decisión
-plt.figure(figsize=(10, 6))
-plt.contourf(xx, yy, Z, alpha=0.8, cmap=plt.cm.Paired)
-plt.scatter(X_escalado[:, 0], X_escalado[:, 1], c=y, edgecolors='k', cmap=plt.cm.Paired)
-plt.xlabel('score')
-plt.ylabel('score_count')
-plt.title('K-NN en el Dataset de Anime')
-plt.show()
+y_pred = knn.predict(X_test)
 
-# Predecir en el conjunto de prueba
-y_pred = knn_classifier.predict(X_test)
+mse = mean_squared_error(y_test, y_pred)
+print("Error cuadrático medio:", mse)
 
-# Mostrar algunas de las predicciones
-print("Predicciones:")
-print(y_pred[:10])  # Muestra las primeras 10 predicciones
-print("Valores reales:")
-print(y_test[:10])  # Muestra los primeros 10 valores reales
+print("Predicciones y valores reales:")
+results = pd.DataFrame({'Actual': y_test, 'Predicted': y_pred})
+print(results.head())
+
+
+accuracy = knn.score(X_test, y_test)
+print("Precisión del modelo:", accuracy)
+
 
 
