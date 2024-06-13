@@ -22,7 +22,7 @@ caracteristicas = ['Yearly Change', 'Density (P/Km²)', 'Land Area (Km²)',
                    'Fert. Rate', 'Med. Age', 'Urban Pop %']
 objetivo = 'Population (2020)'
 
-data_limpio = data.dropna(subset=caracteristicas + [objetivo], how='any')
+data_limpio = data.dropna(subset=caracteristicas + [objetivo])
 
 
 X = data_limpio[caracteristicas]
@@ -47,8 +47,13 @@ mse = mean_squared_error(y_test, y_pred)
 print(f'Error Cuadrático Medio: {mse}')
 
 
-plt.scatter(y_test, y_pred)
+
+plt.figure(figsize=(10, 6))
+plt.scatter(y_test, y_pred, color='blue', label='Predicciones')
+plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], color='red', linestyle='--', label='Línea base')
 plt.xlabel('Valores reales')
 plt.ylabel('Valores predichos')
 plt.title('Predicción de población utilizando k-NN')
+plt.legend()
 plt.show()
+
