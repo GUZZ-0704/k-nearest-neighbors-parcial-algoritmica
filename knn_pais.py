@@ -33,7 +33,7 @@ escalador = StandardScaler()
 X_escalado = escalador.fit_transform(X)
 
 
-X_train, X_test, y_train, y_test = train_test_split(X_escalado, y, train_size=0.8, test_size=0.2, random_state=0)
+X_train, X_test, y_train, y_test = train_test_split(X_escalado, y, train_size=0.8, test_size=0.2, random_state=42)
 
 
 knn_regressor = KNeighborsRegressor(n_neighbors=5)
