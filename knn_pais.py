@@ -23,6 +23,8 @@ caracteristicas = ['Yearly Change', 'Density (P/Km²)', 'Land Area (Km²)',
 objetivo = 'Population (2020)'
 
 data_limpio = data.dropna(subset=caracteristicas + [objetivo])
+print(data.shape)
+print(data_limpio.shape)
 
 
 X = data_limpio[caracteristicas]
