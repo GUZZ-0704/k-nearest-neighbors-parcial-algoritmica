@@ -5,6 +5,10 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.preprocessing import StandardScaler
 
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+
 pd.set_option('display.max_columns', None)
 
 # Cargar el dataset
@@ -70,3 +74,32 @@ print(results.head())
 # Calcular la precisión del modelo
 accuracy = best_knn.score(X_test, y_test)
 print("Precisión del modelo:", accuracy)
+
+
+
+# Gráfico de dispersión de predicciones frente a valores reales
+plt.figure(figsize=(10, 6))
+plt.scatter(y_test, y_pred, alpha=0.5)
+plt.plot([min(y_test), max(y_test)], [min(y_test), max(y_test)], '--r', linewidth=2)
+plt.xlabel('Valores Reales')
+plt.ylabel('Predicciones')
+plt.title('Predicciones vs Valores Reales')
+plt.show()
+
+# Histograma de errores de predicción
+errors = y_test - y_pred
+plt.figure(figsize=(10, 6))
+sns.histplot(errors, bins=30, kde=True)
+plt.xlabel('Error de Predicción')
+plt.ylabel('Frecuencia')
+plt.title('Distribución de los Errores de Predicción')
+plt.show()
+
+# Curva de validación para n_neighbors
+results = pd.DataFrame(grid_search.cv_results_)
+plt.figure(figsize=(10, 6))
+plt.plot(results['param_n_neighbors'], -results['mean_test_score'], marker='o')
+plt.xlabel('Número de Vecinos (n_neighbors)')
+plt.ylabel('Error Cuadrático Medio (negativo)')
+plt.title('Curva de Validación para n_neighbors')
+plt.show()
