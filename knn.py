@@ -2,39 +2,24 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.neighbors import KNeighborsRegressor
-from sklearn.metrics import mean_squared_error
+from sklearn.neighbors import KNeighborsClassifier
 import matplotlib.pyplot as plt
 
 # Cargar el dataset
 anime = pd.read_csv('anime.csv', sep='\t', keep_default_na=False)
 
-print(anime.isnull().sum())
-print(anime.head())
-
 # Selección de características y objetivo
-caracteristicas = ['num_episodes', 'score', 'score_count', 'favorites_count']
-objetivo = 'members_count'
+caracteristicas = ['score', 'score_count']
+objetivo = 'popularity_rank'
 
 # Manejo de valores faltantes
 anime_limpio = anime.dropna(subset=caracteristicas + [objetivo])
 print(f'Datos después de eliminar filas con valores faltantes: {anime_limpio.shape}')
 
-# Eliminar géneros repetidos dentro de cada fila
-anime_limpio['genres'] = anime_limpio['genres'].apply(lambda x: '|'.join(sorted(set(x.split('|')))))
-
-# Expandir las listas de géneros a columnas binarias
-generos = anime_limpio['genres'].str.get_dummies(sep='|')
-anime_limpio = anime_limpio.join(generos)
-
-print('Datos con columnas de géneros añadidas:')
-print(anime_limpio.head())
-
 # Asegurar que no haya valores vacíos en las columnas seleccionadas
 anime_limpio[caracteristicas] = anime_limpio[caracteristicas].apply(pd.to_numeric, errors='coerce')
 anime_limpio.dropna(subset=caracteristicas, inplace=True)
 
-caracteristicas = caracteristicas + generos.columns.tolist()
 X = anime_limpio[caracteristicas]
 y = anime_limpio[objetivo]
 
@@ -46,48 +31,34 @@ X_escalado = escalador.fit_transform(X)
 X_train, X_test, y_train, y_test = train_test_split(X_escalado, y, test_size=0.2, random_state=42)
 
 # Crear el modelo k-NN
-knn_regressor = KNeighborsRegressor(n_neighbors=5)
-knn_regressor.fit(X_train, y_train)
+knn_classifier = KNeighborsClassifier(n_neighbors=5)
+knn_classifier.fit(X_train, y_train)
+
+# Crear una malla para visualizar las regiones de decisión
+h = 0.02  # Tamaño del paso en la malla
+x_min, x_max = X_escalado[:, 0].min() - 1, X_escalado[:, 0].max() + 1
+y_min, y_max = X_escalado[:, 1].min() - 1, X_escalado[:, 1].max() + 1
+xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
+                     np.arange(y_min, y_max, h))
+Z = knn_classifier.predict(np.c_[xx.ravel(), yy.ravel()])
+Z = Z.reshape(xx.shape)
+
+# Graficar las regiones de decisión
+plt.figure(figsize=(10, 6))
+plt.contourf(xx, yy, Z, alpha=0.8, cmap=plt.cm.Paired)
+plt.scatter(X_escalado[:, 0], X_escalado[:, 1], c=y, edgecolors='k', cmap=plt.cm.Paired)
+plt.xlabel('score')
+plt.ylabel('score_count')
+plt.title('K-NN en el Dataset de Anime')
+plt.show()
 
 # Predecir en el conjunto de prueba
-y_pred = knn_regressor.predict(X_test)
+y_pred = knn_classifier.predict(X_test)
 
-# Calcular el error cuadrático medio
-mse = mean_squared_error(y_test, y_pred)
-print(f'Error Cuadrático Medio: {mse}')
+# Mostrar algunas de las predicciones
+print("Predicciones:")
+print(y_pred[:10])  # Muestra las primeras 10 predicciones
+print("Valores reales:")
+print(y_test[:10])  # Muestra los primeros 10 valores reales
 
-# Popularidad por género individual
-popularidad_genero_suma = anime_limpio[generos.columns.tolist() + [objetivo]].groupby(generos.columns.tolist()).sum()
-popularidad_genero_suma = popularidad_genero_suma.sum().sort_values(ascending=False)
-
-print('Popularidad por género (suma):')
-print(popularidad_genero_suma.head())
-
-# Lista para almacenar los valores de MSE para diferentes valores de k
-mse_values = []
-
-# Valores de k a probar
-k_values = [1, 3, 5, 7, 9]
-
-for k in k_values:
-    # Crear el modelo k-NN
-    knn_regressor = KNeighborsRegressor(n_neighbors=k)
-    knn_regressor.fit(X_train, y_train)
-
-    # Predecir en el conjunto de prueba
-    y_pred = knn_regressor.predict(X_test)
-
-    # Calcular el error cuadrático medio
-    mse = mean_squared_error(y_test, y_pred)
-    mse_values.append(mse)
-
-# Graficar los valores de MSE en función de k
-plt.figure(figsize=(10, 6))
-plt.plot(k_values, mse_values, marker='o')
-plt.title('Error Cuadrático Medio vs. Número de Vecinos (k)')
-plt.xlabel('Número de Vecinos (k)')
-plt.ylabel('Error Cuadrático Medio (MSE)')
-plt.xticks(k_values)
-plt.grid(True)
-plt.show()
 
